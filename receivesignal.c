@@ -96,6 +96,7 @@ printSigset(FILE *of, const char *prefix, const sigset_t *sigset)
     for (sig = 1; sig < NSIG; sig++) {
         if (sigismember(sigset, sig)) {
             cnt++;
+            //一定要注意strsignal 并不是兼容所有系统的，我的centos就报错了
             fprintf(of, "%s%d (%s)\n", prefix, sig, strsignal(sig));
             //fprintf(of, "%s%d\n", prefix, sig);
         }
