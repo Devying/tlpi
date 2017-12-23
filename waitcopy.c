@@ -15,43 +15,47 @@ void outErr(const char *msg,const char *format,int errNo);
 char * curTime(void);
 void main(int argc,char *argv[]){
     
-    int numChildren,j,numDead;
-    pid_t childPid,pw;
-    if(argc>1 && strcmp(argv[1],"--help")==0)
-    {
-        printf("usage %s numChildren...\n",argv[0]);
-        exit(EXIT_SUCCESS);  
-    }
-    numChildren = (argc>1)?atoi(argv[1]):1;
-    setbuf(stdout,NULL);
+    int numDead;       /* Number of children so far waited for */
+    pid_t childPid;    /* PID of waited for child */
+    int j;
 
-    for(j=1;j<numChildren;j++){   
-        switch(fork()){
+    if (argc < 2 || strcmp(argv[1], "--help") == 0)
+        outErr("usage wait --help ","%s",errno);
+
+    setbuf(stdout, NULL);           /* Disable buffering of stdout */
+
+    for (j = 1; j < argc; j++) {    /* Create one child for each argument */
+        switch (fork()) {
         case -1:
-            outErr(argv[0],"%s",errno);
-        case 0:
-            printf("%s child %d  started - pid is %d - sleep %d seconds\n",curTime(),j,(long)getpid(),j+3);
-            sleep(j-1);
-                //子进程干活了
+            outErr("fork","%s",errno);
+
+        case 0:                     /* Child sleeps for a while then exits */
+            printf("[%s] child %d started with PID %ld, sleeping %s "
+                    "seconds\n", curTime(), j, (long) getpid(),
+                    argv[j]);
+            sleep(atoi(argv[j]));
             _exit(EXIT_SUCCESS);
-        default:
+
+        default:                    /* Parent just continues around loop */
             break;
         }
     }
 
     numDead = 0;
-    for(;;){
+    for (;;) {                      /* Parent waits for each child to exit */
         childPid = wait(NULL);
-        if(childPid == -1){
-            if(errno == ECHILD){ 
-                printf("No more--bye");
+        if (childPid == -1) {
+            if (errno == ECHILD) {
+                printf("No more children - bye!\n");
                 exit(EXIT_SUCCESS);
-            }else{
+            } else {                /* Some other (unexpected) error */
                 outErr("wait","%s",errno);
             }
         }
+
         numDead++;
-        printf("%s wait() returned child PID %d  numDead is %d\n",curTime(),getpid(),numDead);
+        printf("[%s] wait() returned child PID %ld (numDead=%d)\n",
+                curTime(), (long) childPid, numDead);
     }
 
 }
